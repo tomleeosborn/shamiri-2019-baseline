@@ -44,14 +44,17 @@ df$Gender <- factor(df$Gender,labels = c('Female','Male'))
 df$Gender <- relevel(df$Gender, ref = "Male")
 
 df$Form <- factor(df$Form, labels = c('Form 1','Form 2','Form 3','Form 4'))
+df$Form <- relevel(df$Form, ref = 'Form 1')
 
 df$Financial_Status <- factor(df$Financial_Status,
                               labels = c("Wealthy","Quite well-off","Not quite well-off","Poor"),
                               exclude = NA)
 
+df$Financial_Status <- relevel(df$Financial_Status, ref = 'Wealthy')
+
 df$Home <- factor(df$Home,labels = c("Rural area","Small town","Big town","City"),exclude = NA)
 
-df$Siblings <- factor(df$Siblings, levels = c(1,2,3,4,5), labels = c('1','2','3','4','> 4'),exclude = NA)
+df$Siblings <- factor(df$Siblings, levels = c("1","2","3","4","> 4"), labels = c('1','2','3','4','> 4'),exclude = NA)
 
 df$Religion <- factor(df$Religion,
                       labels = c('Christian protestant','Christian catholic',
@@ -76,8 +79,7 @@ df$Parents_Living_With <- factor(df$Parents,
                                  exclude = NA)
 
 df$Co_Curricular <- factor(df$Co_Curricular, 
-                           labels = c("Not involved at all","Quite involved","Extremely involved"),
-                           ordered = TRUE, exclude = )
+                             labels = c("Not involved at all","Quite involved","Extremely involved"))
 
 df$Sports <- factor(df$Sports, labels = c('No','Yes'), exclude = NA)
 df$School_type <- factor(df$School_type)
@@ -119,7 +121,7 @@ df %>%
     Shamiri_ID, School, PHQ_Total, MSPSS_Total,MSPSS_Family, MSPSS_Friends, MSPSS_SO, Gratitude, Happiness,
       PCS_Academic, School_type, Age, Form, Gender, Tribe, Tribal_Classification,
     Financial_Status, Home, Siblings, Religion, Parents_Living_With, 
-    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports, Percieved_Academic_Abilities
+    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports,Percieved_Academic_Abilities
   ) -> df.phq
 
 #add depressed not depression 
@@ -132,21 +134,20 @@ depressionModel_1 <- lmer(
 
 
 depressionModel_2 <- lmer(
-  PHQ_Total ~  Gender + Age +  Form + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
-    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports+ Percieved_Academic_Abilities
+  PHQ_Total ~  Gender + Age + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
+    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports
   + (1|School),control = lmerControl(optimizer = "Nelder_Mead"),
   data = df.phq
 )                  
 
 #anxiety model
 
-#depression model
 df %>%
   dplyr::select(
     Shamiri_ID, School, GAD_Total, MSPSS_Total,MSPSS_Family, MSPSS_Friends, MSPSS_SO, Gratitude, Happiness,
     PCS_Academic, School_type, Age, Form, Gender, Tribe, Tribal_Classification,
     Financial_Status, Home, Siblings, Religion, Parents_Living_With, 
-    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports, Percieved_Academic_Abilities
+    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports,Percieved_Academic_Abilities
   ) -> df.gad
 
 #add depressed not depression 
@@ -158,16 +159,13 @@ anxietyModel_1 <- lmer(
 )
 
 anxietyModel_2 <- lmer(
-  GAD_Total ~  Gender + Age +  Form + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
-    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports+ Percieved_Academic_Abilities
+  GAD_Total ~  Gender + Age + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
+    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports
   + (1|School),control = lmerControl(optimizer = "Nelder_Mead"),
   data = df.gad
-)                  
+)       
+
 
 #OUTPUT
-tab_model(depressionModel_1, anxietyModel_1, file = "output/psychosocialTable.doc")
-tab_model(depressionModel_2, anxietyModel_2, file = "output/sociodemographicTable.doc")
-
-
-
-
+tab_model(depressionModel_1, anxietyModel_1, file = "output/psychosocialTable.doc",show.est = FALSE, show.std = TRUE)
+tab_model(depressionModel_2, anxietyModel_2, file = "output/sociodemographicTable.doc",show.est = FALSE, show.std = TRUE, digits.p = 3)

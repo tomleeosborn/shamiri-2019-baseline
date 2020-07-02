@@ -35,14 +35,17 @@ df$Gender <- factor(df$Gender,labels = c('Female','Male'))
 df$Gender <- relevel(df$Gender, ref = "Male")
 
 df$Form <- factor(df$Form, labels = c('Form 1','Form 2','Form 3','Form 4'))
+df$Form <- relevel(df$Form, ref = 'Form 1')
 
 df$Financial_Status <- factor(df$Financial_Status,
                               labels = c("Wealthy","Quite well-off","Not quite well-off","Poor"),
                               exclude = NA)
 
+df$Financial_Status <- relevel(df$Financial_Status, ref = 'Wealthy')
+
 df$Home <- factor(df$Home,labels = c("Rural area","Small town","Big town","City"),exclude = NA)
 
-df$Siblings <- factor(df$Siblings, levels = c(1,2,3,4,5), labels = c('1','2','3','4','> 4'),exclude = NA)
+df$Siblings <- factor(df$Siblings, levels = c("1","2","3","4","> 4"), labels = c('1','2','3','4','> 4'),exclude = NA)
 
 df$Religion <- factor(df$Religion,
                       labels = c('Christian protestant','Christian catholic',
@@ -67,8 +70,7 @@ df$Parents_Living_With <- factor(df$Parents,
                                  exclude = NA)
 
 df$Co_Curricular <- factor(df$Co_Curricular, 
-                           labels = c("Not involved at all","Quite involved","Extremely involved"),
-                           ordered = TRUE, exclude = )
+                           labels = c("Not involved at all","Quite involved","Extremely involved"))
 
 df$Sports <- factor(df$Sports, labels = c('No','Yes'), exclude = NA)
 df$School_type <- factor(df$School_type)
@@ -76,7 +78,6 @@ df$School_type <- factor(df$School_type)
 df$Percieved_Academic_Abilities <- factor(df$Percieved_Academic_Abilities, 
                                           labels = c('Not satisfactory','Satisfactory','Good','Very good','Excellent'),
                                           exclude = NA)
-
 
 #IMPUTE DATA 
 md.pattern(df)
@@ -117,7 +118,7 @@ df%>%
   select(
     Shamiri_ID, depressed, School, School_type, Age, Form, Gender, Tribe, Tribal_Classification,
     Financial_Status, Home, Siblings, Religion, Parents_Living_With, 
-    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports, Percieved_Academic_Abilities
+    Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports
   ) -> df.phq
 
 set.seed(504)
@@ -125,11 +126,11 @@ split = sample.split(df.phq$depressed, SplitRatio = .8)
 phq.TRAIN <- subset(df.phq, split==TRUE)
 phq.TEST <- subset(df.phq, split==FALSE)
 
-x_train <-  phq.TRAIN %>%
+x_train.PHQ <-  phq.TRAIN %>%
   select(
     -c(depressed)
   )
-y_train <- phq.TRAIN %>%
+y_train.PHQ <- phq.TRAIN %>%
   select(
     c(depressed)
   )
@@ -139,54 +140,49 @@ depressionLog <- stats::glm(depressed ~ Gender+  Age +
                               Form+ Tribal_Classification+ 
                               Financial_Status+ Home+ Siblings+ Parents_Living_With+ 
                               Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+ 
-                              Sports + Percieved_Academic_Abilities, 
+                              Sports,
                             data = phq.TRAIN, family = 'binomial')
 
-summary(depressionLog)$coef
-anova(depressionLog, test = "Chisq")
+summary(depressionLog)
+tab_model(depressionLog)
 
 #predict train
-predictTrain = predict(depressionLog, type = "response")
-summary(predictTrain)
-tapply(predictTrain, phq.TRAIN$depressed, mean)
+predictTrain.PHQ = predict(depressionLog, type = "response")
+summary(predictTrain.PHQ)
+tapply(predictTrain.PHQ, phq.TRAIN$depressed, mean)
 #confusion matrix
-train.actual <- phq.TRAIN$depressed
-train.predicted <- ifelse(predictTrain >=.5, "Depressed","Not Depressed")
-train.predicted <- factor(train.predicted, levels = c("Not Depressed", "Depressed"))
+train.actual.PHQ <- phq.TRAIN$depressed
+train.predicted.PHQ <- ifelse(predictTrain.PHQ >=.6, "Depressed","Not Depressed")
+train.predicted.PHQ <- factor(train.predicted.PHQ, levels = c("Not Depressed", "Depressed"))
 
-table(train.actual, train.predicted)
+table(train.actual.PHQ, train.predicted.PHQ)
 
 #choose threshhold using ROC curve
-ROCRpred <- prediction(predictTrain, phq.TRAIN$depressed)
-ROCRperf <- performance(ROCRpred, "tpr",'fpr')
-plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0,1, by = 0.1), text.adj=c(-0.2,1.7))
+ROCRpred.PHQ <- prediction(predictTrain.PHQ, phq.TRAIN$depressed)
+ROCRperf.PHQ <- performance(ROCRpred.PHQ, "tpr",'fpr')
+plot(ROCRperf.PHQ, colorize = TRUE, print.cutoffs.at = seq(0,1, by = 0.1), text.adj=c(-0.2,1.7))
 
 #train accuracy
-mean(train.predicted==train.actual)
-
-#choose threshhold using ROC curve
-ROCRpred <- prediction(predictTrain, phq.TRAIN$depressed)
-ROCRperf <- performance(ROCRpred, "tpr",'fpr')
-plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0,1, by = 0.1), text.adj=c(-0.2,1.7))
+mean(train.predicted.PHQ==train.actual.PHQ)
 
 #predict test
-predictTest = predict(depressionLog, type = "response", newdata = phq.TEST)
-table(phq.TEST$depressed, predictTest >=.5)
+predictTest.PHQ = predict(depressionLog, type = "response", newdata = phq.TEST)
+table(phq.TEST$depressed, predictTest.PHQ >=.6)
 
-test.actual <- phq.TEST$depressed
-test.predicted <- ifelse(predictTest >=.5, "Depressed","Not Depressed")
-test.predicted <- factor(test.predicted, levels = c("Not Depressed", "Depressed"))
+test.actual.PHQ <- phq.TEST$depressed
+test.predicted.PHQ <- ifelse(predictTest.PHQ >=.6, "Depressed","Not Depressed")
+test.predicted.PHQ <- factor(test.predicted.PHQ, levels = c("Not Depressed", "Depressed"))
 
 #test accuracy
-mean(test.predicted==test.actual)
-table(test.actual, test.predicted)
+mean(test.predicted.PHQ==test.actual.PHQ)
+table(test.actual.PHQ, test.predicted.PHQ)
 
 
 #ANXIETY MODEL
 df%>%
   select(
     Shamiri_ID, anxious, School, School_type, Age, Form, Gender, Tribe, Tribal_Classification,
-    Financial_Status, Home, Siblings, Religion, Parents_Living_With, 
+    Financial_Status, Home, Siblings, Religion, Parents_Living_With, Religion,
     Num_parents_dead, Fathers_Education, Mothers_Education, Co_Curricular, Sports, Percieved_Academic_Abilities
   ) -> df.gad
 
@@ -197,43 +193,49 @@ gad.TEST <- subset(df.gad, split==FALSE)
 
 anxietyLog <- stats::glm(anxious ~ Gender + Age +  Form + 
                            Tribal_Classification+ 
-                           Financial_Status+ Home+ Siblings+ Parents_Living_With+ 
+                           Financial_Status+ Home+ Siblings+ Parents_Living_With+
                            Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+ 
-                           Sports+ Percieved_Academic_Abilities, 
+                           Sports, 
                          data = gad.TRAIN, family = 'binomial')
+
 
 summary(anxietyLog)
 anova(anxietyLog, test = "Chisq")
+tab_model(anxietyLog)
 #predict train
-predictTrain = predict(anxietyLog, type = "response")
-summary(predictTrain)
-tapply(predictTrain, gad.TRAIN$anxious, mean)
+predictTrain.GAD = predict(anxietyLog, type = "response")
+summary(predictTrain.GAD)
+tapply(predictTrain.GAD, gad.TRAIN$anxious, mean)
 
 #confusion matrix
-table(gad.TRAIN$anxious, predictTrain>.5)
+table(gad.TRAIN$anxious, predictTrain.GAD>.6)
 
 #choose threshhold using ROC curve
-ROCRpred <- prediction(predictTrain, gad.TRAIN$anxious)
-ROCRperf <- performance(ROCRpred, "tpr",'fpr')
-plot(ROCRperf, colorize = TRUE, print.cutoffs.at = seq(0,1, by = 0.1), text.adj=c(-0.2,1.7))
+ROCRpred.GAD <- prediction(predictTrain.GAD, gad.TRAIN$anxious)
+ROCRperf.GAD <- performance(ROCRpred.GAD, "tpr",'fpr')
+plot(ROCRperf.GAD, colorize = TRUE, print.cutoffs.at = seq(0,1, by = 0.1), text.adj=c(-0.2,1.7))
 
-train.actual <- gad.TRAIN$anxious
-train.predicted <- ifelse(predictTrain >=.5, "Anxious","Not Anxious")
-train.predicted <- factor(train.predicted, levels = c("Not Anxious","Anxious"))
+train.actual.GAD <- gad.TRAIN$anxious
+train.predicted.GAD <- ifelse(predictTrain.GAD >=.6, "Anxious","Not Anxious")
+train.predicted.GAD <- factor(train.predicted.GAD, levels = c("Not Anxious","Anxious"))
 
-table(train.actual, train.predicted)
+table(train.actual.GAD, train.predicted.GAD)
 
 #train accuracy
-mean(train.predicted==train.actual)
+mean(train.predicted.GAD==train.actual.GAD)
 
 #predict test
-predictTest = predict(anxietyLog, type = "response", newdata = gad.TEST)
-table(gad.TEST$anxious, predictTest >=.5)
+predictTest.GAD = predict(anxietyLog, type = "response", newdata = gad.TEST)
+table(gad.TEST$anxious, predictTest.GAD >=.6)
 
-test.actual <- gad.TEST$anxious
-test.predicted <- ifelse(predictTest >=.5, "Anxious","Not Anxious")
-test.predicted <- factor(test.predicted, levels = c("Not Anxious","Anxious"))
+test.actual.GAD <- gad.TEST$anxious
+test.predicted.GAD <- ifelse(predictTest.GAD >=.6, "Anxious","Not Anxious")
+test.predicted.GAD <- factor(test.predicted.GAD, levels = c("Not Anxious","Anxious"))
 
 #test accuracy
-mean(test.predicted==test.actual)
-table(test.actual, test.predicted)
+mean(test.predicted.GAD==test.actual.GAD)
+table(test.actual.GAD, test.predicted.GAD)
+
+#output
+
+tab_model(depressionLog, anxietyLog, file = "output/depression_anxietyLog.doc")
