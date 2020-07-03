@@ -138,7 +138,15 @@ depressionModel_2 <- lmer(
     Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports
   + (1|School),control = lmerControl(optimizer = "Nelder_Mead"),
   data = df.phq
-)                  
+)     
+
+depressionModel_3 <- lmer(
+  PHQ_Total ~  MSPSS_Total +Gratitude +  Happiness +  
+    PCS_Academic + Gender + Age + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
+    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports + 
+    (1|School),control = lmerControl(optimizer = "Nelder_Mead"),  data = df.phq
+)
+
 
 #anxiety model
 
@@ -163,9 +171,17 @@ anxietyModel_2 <- lmer(
     Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports
   + (1|School),control = lmerControl(optimizer = "Nelder_Mead"),
   data = df.gad
-)       
+)      
+
+anxietyModel_3 <- lmer(
+  GAD_Total ~  MSPSS_Total +Gratitude +  Happiness +  
+    PCS_Academic + Gender + Age + Tribal_Classification + Financial_Status + Home+ Siblings+ Parents_Living_With+ 
+    Num_parents_dead+ Fathers_Education+ Mothers_Education+ Co_Curricular+  Sports + 
+    (1|School),control = lmerControl(optimizer = "Nelder_Mead"),  data = df.gad
+)
 
 
 #OUTPUT
 tab_model(depressionModel_1, anxietyModel_1, file = "output/psychosocialTable.doc",show.est = FALSE, show.std = TRUE)
 tab_model(depressionModel_2, anxietyModel_2, file = "output/sociodemographicTable.doc",show.est = FALSE, show.std = TRUE, digits.p = 3)
+tab_model(depressionModel_3, anxietyModel_3, file = "output/combined_variables.doc",show.est = TRUE)
